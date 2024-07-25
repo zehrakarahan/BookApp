@@ -1,0 +1,107 @@
+﻿@model int
+
+@{
+    Layout = "_ModalLayout";
+}
+
+<form id="updateBookForm" class="w-120 p-3 shadow mx-auto" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="Id" id="Id" value="@Model" />
+    <div class="mb-3">
+        <label for="Name" class="form-label">Name:</label>
+        <input type="text" class="form-control" id="Name" name="Name" />
+    </div>
+    <div class="mb-3">
+        <label for="AuthorId" class="form-label">AuthorId:</label>
+        <input type="text" class="form-control" id="AuthorId" name="AuthorId" />
+    </div>
+    <div class="mb-3">
+        <label for="ImageUrl" class="form-label">Image URL:</label>
+        <input type="file" class="form-control" id="ImageUrl" name="ImageUrl" />
+    </div>
+    <div class="mb-3">
+        <button type="button" class="btn btn-primary w-100" id="updateButton">Update</button>
+    </div>
+</form>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        $(function () {
+            // Form doldurma işlemi
+            $.ajax({
+                url: baseUrl + 'api/Books/' + @Model,
+                type: 'GET',
+                headers: {
+                    'Authorization': 'Bearer @ViewData["Token"]'
+                },
+                success: function (data) {
+                    $('#Name').val(data.name);
+                    $('#AuthorId').val(data.authorId);
+                    $('#ImageUrl').val(data.imageUrl);
+                },
+                error: function (xhr, status, error) {
+                    var errorMessage;
+                    if (xhr.status === 401) {
+                        errorMessage = 'Yetkilendirme hatası! Lütfen giriş yapın.';
+                    } else {
+                        errorMessage = xhr.responseJSON ? xhr.responseJSON.message : 'Bir hata oluştu.';
+                    }
+
+                    Swal.fire({
+                        title: 'Error!',
+                        text: errorMessage,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            });
+
+            // Güncelleme işlemi
+            $('#updateButton').click(function () {
+                var formData = new FormData();
+                formData.append('Id', $('#Id').val());
+                formData.append('Name', $('#Name').val());
+                formData.append('AuthorId', $('#AuthorId').val());
+                formData.append('ImageUrl', $('#ImageUrl')[0].files[0]);
+
+                $.ajax({
+                    url: baseUrl + 'api/Books/Update',
+                    type: 'PUT',
+                    headers: {
+                        'Authorization': 'Bearer @ViewData["Token"]'
+                    },
+                    processData: false,
+                    contentType: false,
+                    data: formData,
+                    success: function (response) {
+                        Swal.fire({
+                            title: 'Success!',
+                            text: 'Kitap başarıyla güncellendi.',
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                window.location.href = '@Url.Action("GetList", "Books")';
+                            }
+                        });
+                    },
+                    error: function (xhr, status, error) {
+                        var errorMessage;
+                        if (xhr.status === 401) {
+                            errorMessage = 'Yetkilendirme hatası! Lütfen giriş yapın.';
+                        } else {
+                            errorMessage = xhr.responseJSON ? xhr.responseJSON.message : 'Kitap güncellenirken bir hata oluştu.';
+                        }
+
+                        Swal.fire({
+                            title: 'Error!',
+                            text: errorMessage,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+}
