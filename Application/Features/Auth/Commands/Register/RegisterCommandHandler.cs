@@ -13,12 +13,15 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommandRequest, Re
     private readonly AuthBusinessRules _authBusinessRules;
     private readonly IUserRepository _userRepository;
     private readonly IMapper _mapper;
+    private RoleManager<Role> _roleManager;
 
-    public RegisterCommandHandler(AuthBusinessRules authBusinessRules, IUserRepository userRepository, IMapper mapper)
+    public RegisterCommandHandler(AuthBusinessRules authBusinessRules, IUserRepository userRepository, IMapper mapper, RoleManager<Role> roleManager)
     {
         _authBusinessRules = authBusinessRules;
         _userRepository = userRepository;
         _mapper = mapper;
+        _roleManager = roleManager;
+
     }
 
     public async Task<RegisterCommandResponse> Handle(RegisterCommandRequest request, CancellationToken cancellationToken)
@@ -31,6 +34,10 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommandRequest, Re
         var result = await _userRepository.CreateUserAsync(user,request.Password);
         if (result.Succeeded)
         {
+            if (!await _roleManager.RoleExistsAsync("user"))
+            {
+                await _roleManager.CreateAsync(new Role { Name="user",NormalizedName="USER",ConcurrencyStamp=""});
+            }
             await _userRepository.AddRolesToUserAsync(user, new[] { "user" });
             var response = _mapper.Map<RegisterCommandResponse>(user);
             return response;

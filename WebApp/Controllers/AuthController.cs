@@ -8,6 +8,7 @@ using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using WebApp.Models.Auth;
 using ClosedXML.Excel;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace WebApp.Controllers;
 public class AuthController : Controller
@@ -28,7 +29,7 @@ public class AuthController : Controller
     {
         var client = _clientFactory.CreateClient();
         var content = new StringContent(JsonSerializer.Serialize(userLoginModel), Encoding.UTF8, "application/json");
-        var response = await client.PostAsync("http://localhost:5298/api/Auth/Login", content);
+        var response = await client.PostAsync("http://localhost:7700/api/Auth/Login", content);
         var jsonData = await response.Content.ReadAsStringAsync();
         var tokenModel = JsonSerializer.Deserialize<LoginResponseModel>(jsonData, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase});
 
@@ -37,9 +38,9 @@ public class AuthController : Controller
         var claims = token.Claims.ToList();
         claims.Add(new Claim("accessToken", tokenModel.AccessToken));
         claims.Add(new Claim("refreshTokenExpire", tokenModel.RefreshTokenExpiredTime.ToString()));
-        var claimsIdentity = new ClaimsIdentity(claims, JwtBearerDefaults.AuthenticationScheme);
+        var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
-        await HttpContext.SignInAsync(JwtBearerDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
         return RedirectToAction("Index", "Home");
     }
     public IActionResult Register()
@@ -53,7 +54,7 @@ public class AuthController : Controller
         string email = User.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Email).Value;
         var model = new LogoutModel() { Email = email };
         var content = new StringContent(JsonSerializer.Serialize(model), Encoding.UTF8, "application/json");
-        var response = await client.PostAsync("http://localhost:5298/api/Auth/Logout", content);
+        var response = await client.PostAsync("http://localhost:7700/api/Auth/Logout", content);
 
         await HttpContext.SignOutAsync(JwtBearerDefaults.AuthenticationScheme);
         return RedirectToAction("Index", "Home");

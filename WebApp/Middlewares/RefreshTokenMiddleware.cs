@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -23,7 +24,6 @@ public class RefreshTokenMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-
         var accessToken = context.User?.Claims?.FirstOrDefault(x => x.Type == "accessToken")?.Value;
         var refreshTokenExpire = context.User?.Claims?.FirstOrDefault(x => x.Type == "refreshTokenExpire")?.Value;
 
@@ -34,7 +34,7 @@ public class RefreshTokenMiddleware
 
             if (string.IsNullOrEmpty(refreshTokenExpire) || accessTokenValid.ValidTo < DateTime.UtcNow && DateTime.Parse(refreshTokenExpire) < DateTime.UtcNow)
             {
-                await context.SignOutAsync(JwtBearerDefaults.AuthenticationScheme);
+                await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                 context.Response.Redirect("/Auth/Login");
                 return;
             }
@@ -48,11 +48,11 @@ public class RefreshTokenMiddleware
 
                 var client = _clientFactory.CreateClient();
                 var content = new StringContent(JsonSerializer.Serialize(refreshLoginModel), Encoding.UTF8, "application/json");
-                var response = await client.PostAsync("http://localhost:5298/api/Auth/RefreshTokenLogin", content);
+                var response = await client.PostAsync("http://localhost:7700/api/Auth/RefreshTokenLogin", content);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    await context.SignOutAsync(JwtBearerDefaults.AuthenticationScheme);
+                    await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                     context.Response.Redirect("/Auth/Login");
                     return;
                 }
@@ -63,20 +63,20 @@ public class RefreshTokenMiddleware
                 var claims = accessTokenValid.Claims.ToList();
                 claims.Add(new Claim("accessToken", newToken.AccessToken));
                 claims.Add(new Claim("refreshTokenExpire", refreshTokenExpire.ToString()));
-                var claimsIdentity = new ClaimsIdentity(claims, JwtBearerDefaults.AuthenticationScheme);
+                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
-                await context.SignInAsync(JwtBearerDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
+                await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
             }
         }
         else
         {
-
             if (!context.Request.Path.Value.StartsWith("/Auth/"))
             {
                 context.Response.Redirect("/Auth/Login");
                 return;
-            }    
+            }
         }
         await _next(context);
     }
+
 }

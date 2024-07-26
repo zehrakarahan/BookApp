@@ -48,6 +48,8 @@ public class TokenService : ITokenService
 
         await _userManager.AddClaimsAsync(user, claims);
 
+
+
         return token;
 
     }
